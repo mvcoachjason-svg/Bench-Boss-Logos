@@ -1,0 +1,16 @@
+{
+  "name": "audio-clipper",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser-only audio trimmer: load a file, drag a selection, export WAV/MP3/M4A.",
+  "scripts": {
+    "dev": "npx --yes live-server --port=5173 --no-browser .",
+    "serve": "python3 -m http.server 5173",
+    "test": "node test/smoke.mjs"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  },
+  "keywords": ["audio", "trim", "waveform", "mp3", "wav", "m4a"],
+  "license": "MIT"
+}

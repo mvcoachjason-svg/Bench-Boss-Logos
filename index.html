@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Audio Clipper</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app">
+    <header class="app-header">
+      <h1>Audio Clipper</h1>
+      <p class="subtitle">Trim a section out of an audio file, entirely in your browser. Nothing is uploaded.</p>
+    </header>
+
+    <!-- Step 1: pick a file -->
+    <section id="dropzone" class="dropzone" tabindex="0" role="button"
+             aria-label="Choose an audio file or drop one here">
+      <div class="dropzone-inner">
+        <div class="dropzone-icon" aria-hidden="true">&#9834;</div>
+        <p class="dropzone-title">Drop an audio file here</p>
+        <p class="dropzone-hint">or click to browse &mdash; mp3, m4a, wav, ogg, flac&hellip;</p>
+      </div>
+      <input type="file" id="file-input" accept="audio/*" hidden>
+    </section>
+
+    <!-- Step 2: everything else, hidden until a file is decoded -->
+    <section id="editor" class="editor" hidden>
+      <div class="file-bar">
+        <div class="file-meta">
+          <span id="file-name" class="file-name">&nbsp;</span>
+          <span id="file-info" class="file-info"></span>
+        </div>
+        <button type="button" id="change-file" class="btn btn-ghost">Change file</button>
+      </div>
+
+      <div class="waveform-block">
+        <div id="waveform" class="waveform">
+          <canvas id="wave-canvas"></canvas>
+          <div id="selection" class="selection" hidden>
+            <div class="handle handle-left" data-edge="start" role="slider"
+                 tabindex="0" aria-label="Selection start"></div>
+            <div class="handle handle-right" data-edge="end" role="slider"
+                 tabindex="0" aria-label="Selection end"></div>
+          </div>
+          <div id="playhead" class="playhead" hidden></div>
+        </div>
+        <div class="ruler" id="ruler" aria-hidden="true"></div>
+      </div>
+
+      <div class="readout">
+        <div class="readout-item">
+          <span class="readout-label">Start</span>
+          <span class="readout-value" id="out-start">0:00.0</span>
+        </div>
+        <div class="readout-item">
+          <span class="readout-label">End</span>
+          <span class="readout-value" id="out-end">0:00.0</span>
+        </div>
+        <div class="readout-item readout-item-strong">
+          <span class="readout-label">Length</span>
+          <span class="readout-value" id="out-length">0:00.0</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="control-group">
+          <span class="control-label">Presets</span>
+          <div class="preset-row" id="presets"></div>
+        </div>
+
+        <div class="control-group">
+          <span class="control-label">Preview</span>
+          <div class="button-row">
+            <button type="button" id="play" class="btn btn-primary">Play selection</button>
+            <button type="button" id="stop" class="btn" disabled>Stop</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <span class="control-label">Export</span>
+          <div class="button-row">
+            <label class="field">
+              <span class="field-label">Format</span>
+              <select id="format">
+                <option value="wav">WAV &mdash; lossless</option>
+                <option value="mp3" selected>MP3</option>
+                <option value="m4a">M4A &mdash; AAC</option>
+              </select>
+            </label>
+            <label class="field" id="bitrate-field">
+              <span class="field-label">Bitrate</span>
+              <select id="bitrate">
+                <option value="96">96 kbps</option>
+                <option value="128">128 kbps</option>
+                <option value="192" selected>192 kbps</option>
+                <option value="256">256 kbps</option>
+                <option value="320">320 kbps</option>
+              </select>
+            </label>
+            <button type="button" id="export" class="btn btn-primary">Export clip</button>
+          </div>
+          <p class="format-note" id="format-note"></p>
+        </div>
+      </div>
+
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+      <div class="progress" id="progress" hidden><div class="progress-bar" id="progress-bar"></div></div>
+    </section>
+
+    <footer class="app-footer">
+      <p>Runs offline. MP3 encoding by <a href="https://lame.sourceforge.net/" rel="noopener">LAME</a> (lamejs).</p>
+    </footer>
+  </main>
+
+  <script src="vendor/lame.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
