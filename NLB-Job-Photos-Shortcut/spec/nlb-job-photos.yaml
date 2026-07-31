@@ -1,0 +1,207 @@
+# NOTE: This is a descriptive specification, NOT an Apple import format.
+# Apple Shortcuts cannot import YAML or JSON. See LIMITATIONS.md.
+---
+spec_version: 1
+shortcut:
+  name: NLB Job Photos
+  platform: iOS / iPadOS (current releases)
+  signed: false
+  importable_directly: false
+  authoritative_build_document: ACTION-BY-ACTION-BUILD.md
+
+constants:
+  album_name: NLB Job Photos
+  drive_root: Google Drive/NLB Home Services/03 Job Photos
+  media_destination: /NLB Home Services/03 Job Photos/Incoming/
+  log_destination: /NLB Home Services/03 Job Photos/Job Logs/
+  preflight_sentinel: /NLB Home Services/03 Job Photos/Incoming/NLB-READY.txt
+  filename_pattern: "{date}_{job_slug}_{photo_type}_{time}_{seq}.{ext}"
+  filename_example: 2026-07-31_Smith-Residence_Before_14-32-11_001.jpg
+  log_filename_pattern: "{date}_{job_slug}_{photo_type}_{time}_Log.txt"
+  date_format: yyyy-MM-dd
+  time_format: HH-mm-ss
+  job_label_format: "{date} - {job_name} - {photo_type}"
+  job_label_example: 2026-07-31 - Smith Residence - Before
+
+photo_types:
+  - Estimate
+  - Before
+  - During
+  - After
+  - Damage
+  - Materials
+  - Receipt
+
+input_configuration:
+  accepts:
+    - WFImageContentItem      # Images
+    - WFAVAssetContentItem    # Media (video / audio assets)
+    - WFGenericFileContentItem # Files, for video container compatibility
+  share_sheet_enabled: true
+  if_no_input: prompt user with Select Photos (Select Multiple on)
+  surfaces:
+    - Shortcuts app
+    - iPhone Home Screen icon
+    - iPad Home Screen icon
+    - Shortcuts widget
+    - Share Sheet
+
+variables:
+  Drive Check:   {type: file,   source: "Get File (preflight sentinel)"}
+  Job Name:      {type: text,   source: "Ask for Input"}
+  Photo Type:    {type: text,   source: "Choose from Menu result"}
+  Now:           {type: date,   source: "Date (Current Date)"}
+  Date Stamp:    {type: text,   source: "Format Date yyyy-MM-dd"}
+  Time Stamp:    {type: text,   source: "Format Date HH-mm-ss"}
+  Job Label:     {type: text,   source: "Text"}
+  Job Slug:      {type: text,   source: "Replace Text chain over Job Name"}
+  Device Name:   {type: text,   source: "Get Device Details"}
+  Media:         {type: list,   source: "Shortcut Input or Select Photos"}
+  Item Count:    {type: number, source: "Count"}
+  Seq:           {type: text,   source: "Repeat Index zero-padded to 3 digits", scope: repeat}
+
+sanitization:
+  target: Job Name -> Job Slug
+  ordered_rules:
+    - {regex: '[\\/:*?"<>|]', replace: "",            note: "strip filesystem-illegal characters"}
+    - {regex: '\s+',          replace: "-",           note: "spaces to hyphens"}
+    - {regex: '-{2,}',        replace: "-",           note: "collapse repeated hyphens"}
+    - {regex: '^-+|-+$',      replace: "",            note: "trim leading/trailing hyphens"}
+    - {regex: '^$',           replace: "Unnamed-Job", note: "guard against an empty result"}
+
+sequence_number:
+  method: "Text '00{Repeat Index}' then Replace Text regex ^\\d+(\\d{3})$ -> $1"
+  yields: ["001", "002", "010", "100"]
+  ceiling: 999
+
+dynamic_folder_decision:
+  question: Can native Shortcuts reliably create nested Google Drive folders via the Files provider?
+  answer: false
+  reasoning:
+    - iOS Shortcuts has no native "Create Folder" action.
+    - Implicit folder creation by Save File is only dependable on iCloud Drive and On My iPhone/iPad.
+    - The Google Drive File Provider does not dependably support on-demand
+      directory creation or path addressing of folders that are not already cached.
+    - Failures are silent or produce a generic Save File error that Shortcuts cannot trap.
+  chosen_implementation: flat_incoming_folder_with_encoded_filenames
+  consequence: every fact that would have been encoded in the folder tree is encoded in the filename instead.
+
+flow:
+  - {n: 1,  action: Comment,               block: top}
+  - {n: 2,  action: Comment,               block: top}
+  - {n: 3,  action: Get File,              block: top, output: implicit, settings: {path: preflight_sentinel, error_if_not_found: false, show_picker: false}}
+  - {n: 4,  action: Set Variable,          block: top, output: Drive Check}
+  - {n: 5,  action: If,                    block: open,  condition: "Drive Check does not have any value"}
+  - {n: 6,  action: Show Alert,            block: if,    settings: {message: drive_unavailable}}
+  - {n: 7,  action: Stop This Shortcut,    block: if}
+  - {n: 8,  action: End If,                block: close}
+  - {n: 9,  action: Ask for Input,         block: top, settings: {type: Text, prompt: "Customer, address, or job name?"}}
+  - {n: 10, action: Set Variable,          block: top, output: Job Name}
+  - {n: 11, action: Choose from Menu,      block: open, settings: {prompt: "What type of job photos are you filing?", items: photo_types}}
+  - {n: 12, action: Menu Item,             block: menu, settings: {title: Estimate}}
+  - {n: 13, action: Text,                  block: menu, settings: {text: Estimate}}
+  - {n: 14, action: Menu Item,             block: menu, settings: {title: Before}}
+  - {n: 15, action: Text,                  block: menu, settings: {text: Before}}
+  - {n: 16, action: Menu Item,             block: menu, settings: {title: During}}
+  - {n: 17, action: Text,                  block: menu, settings: {text: During}}
+  - {n: 18, action: Menu Item,             block: menu, settings: {title: After}}
+  - {n: 19, action: Text,                  block: menu, settings: {text: After}}
+  - {n: 20, action: Menu Item,             block: menu, settings: {title: Damage}}
+  - {n: 21, action: Text,                  block: menu, settings: {text: Damage}}
+  - {n: 22, action: Menu Item,             block: menu, settings: {title: Materials}}
+  - {n: 23, action: Text,                  block: menu, settings: {text: Materials}}
+  - {n: 24, action: Menu Item,             block: menu, settings: {title: Receipt}}
+  - {n: 25, action: Text,                  block: menu, settings: {text: Receipt}}
+  - {n: 26, action: End Menu,              block: close}
+  - {n: 27, action: Set Variable,          block: top, output: Photo Type}
+  - {n: 28, action: Date,                  block: top, settings: {mode: Current Date}}
+  - {n: 29, action: Set Variable,          block: top, output: Now}
+  - {n: 30, action: Format Date,           block: top, input: Now, settings: {style: Custom, format: yyyy-MM-dd}}
+  - {n: 31, action: Set Variable,          block: top, output: Date Stamp}
+  - {n: 32, action: Format Date,           block: top, input: Now, settings: {style: Custom, format: HH-mm-ss}}
+  - {n: 33, action: Set Variable,          block: top, output: Time Stamp}
+  - {n: 34, action: Text,                  block: top, settings: {text: "{Date Stamp} - {Job Name} - {Photo Type}"}}
+  - {n: 35, action: Set Variable,          block: top, output: Job Label}
+  - {n: 36, action: Comment,               block: top}
+  - {n: 37, action: Replace Text,          block: top, input: Job Name, settings: {regex: true, find: '[\\/:*?"<>|]', replace: ""}}
+  - {n: 38, action: Replace Text,          block: top, settings: {regex: true, find: '\s+', replace: "-"}}
+  - {n: 39, action: Replace Text,          block: top, settings: {regex: true, find: '-{2,}', replace: "-"}}
+  - {n: 40, action: Replace Text,          block: top, settings: {regex: true, find: '^-+|-+$', replace: ""}}
+  - {n: 41, action: Replace Text,          block: top, settings: {regex: true, find: '^$', replace: "Unnamed-Job"}}
+  - {n: 42, action: Set Variable,          block: top, output: Job Slug}
+  - {n: 43, action: Get Device Details,    block: top, settings: {detail: Device Name}}
+  - {n: 44, action: Set Variable,          block: top, output: Device Name}
+  - {n: 45, action: Comment,               block: top}
+  - {n: 46, action: If,                    block: open,      condition: "Shortcut Input has any value"}
+  - {n: 47, action: Set Variable,          block: if,        input: Shortcut Input, output: Media}
+  - {n: 48, action: Otherwise,             block: middle}
+  - {n: 49, action: Select Photos,         block: otherwise, settings: {select_multiple: true}}
+  - {n: 50, action: Set Variable,          block: otherwise, output: Media}
+  - {n: 51, action: End If,                block: close}
+  - {n: 52, action: Count,                 block: top, input: Media, settings: {type: Items}}
+  - {n: 53, action: Set Variable,          block: top, output: Item Count}
+  - {n: 54, action: If,                    block: open, condition: "Item Count is 0"}
+  - {n: 55, action: Show Alert,            block: if, settings: {message: "No photos or videos were selected."}}
+  - {n: 56, action: Stop This Shortcut,    block: if}
+  - {n: 57, action: End If,                block: close}
+  - {n: 58, action: Save to Photo Album,   block: top, input: Media, settings: {album: NLB Job Photos}}
+  - {n: 59, action: Repeat with Each,      block: open, input: Media}
+  - {n: 60, action: Text,                  block: repeat, settings: {text: "00{Repeat Index}"}}
+  - {n: 61, action: Replace Text,          block: repeat, settings: {regex: true, find: '^\d+(\d{3})$', replace: "$1"}}
+  - {n: 62, action: Set Variable,          block: repeat, output: Seq}
+  - {n: 63, action: Set Name,              block: repeat, input: Repeat Item, settings: {name: "{Date Stamp}_{Job Slug}_{Photo Type}_{Time Stamp}_{Seq}", dont_include_file_extension: false}}
+  - {n: 64, action: Save File,             block: repeat, settings: {ask_where_to_save: false, destination: media_destination, overwrite: false}}
+  - {n: 65, action: End Repeat,            block: close}
+  - {n: 66, action: Text,                  block: top, settings: {text: job_log_body}}
+  - {n: 67, action: Set Name,              block: top, settings: {name: "{Date Stamp}_{Job Slug}_{Photo Type}_{Time Stamp}_Log.txt", dont_include_file_extension: true}}
+  - {n: 68, action: Save File,             block: top, settings: {ask_where_to_save: false, destination: log_destination, overwrite: false}}
+  - {n: 69, action: Show Notification,     block: top, settings: {body: "NLB saved {Item Count} items for {Job Name} as {Photo Type}."}}
+
+job_log_body: |
+  NLB FIELD MEDIA LOG
+
+  Job: {Job Name}
+  Category: {Photo Type}
+  Date: {Date Stamp}
+  Time: {Time Stamp}
+  Items saved: {Item Count}
+  Apple Photos album: NLB Job Photos
+  Google Drive location: Google Drive/NLB Home Services/03 Job Photos/Incoming/
+  Device name: {Device Name}
+
+  Job label: {Job Label}
+  Filename prefix: {Date Stamp}_{Job Slug}_{Photo Type}_{Time Stamp}
+
+error_handling:
+  - case: No media selected
+    mechanism: "Count == 0 guard at step 54"
+    behavior: "Show Alert 'No photos or videos were selected.' then Stop This Shortcut"
+  - case: Google Drive unavailable
+    mechanism: "Preflight Get File on sentinel with Error If Not Found OFF, step 3-8"
+    behavior: "Alert naming the folder to check, then stop before any prompt"
+  - case: Google Drive permission denied
+    mechanism: same preflight
+    behavior: "Sentinel read fails, treated as unavailable"
+  - case: Apple Photos permission denied
+    mechanism: iOS system prompt on first run
+    behavior: "Cannot be trapped in Shortcuts; documented in SETUP-CHECKLIST.md"
+  - case: Save operation failure
+    mechanism: none available
+    behavior: "Shortcuts aborts with its own error. Originals untouched. Re-run is safe."
+  - case: Duplicate filename
+    mechanism: "HH-mm-ss plus 3-digit sequence, Overwrite If File Exists OFF"
+    behavior: "Collision requires same job, type, second and index. Overwrite off prevents data loss."
+  - case: Unsupported media type
+    mechanism: "Generic file object handling; no type filtering"
+    behavior: "Original extension preserved by Set Name; Live Photos export as stills"
+  - case: Missing destination folder
+    mechanism: preflight sentinel plus one-time setup
+    behavior: "Detected before work begins"
+  - case: Shortcut cancellation
+    mechanism: native
+    behavior: "Cancelling Ask for Input, the menu, or the picker ends the run with nothing written"
+
+guarantees:
+  never_deletes_originals: true
+  never_recompresses: true
+  actions_that_could_delete: []
