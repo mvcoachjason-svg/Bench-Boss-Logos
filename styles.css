@@ -388,6 +388,27 @@ select {
   transition: width 0.12s linear;
 }
 
+/* ---------- update bar ---------- */
+
+.update-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 16px;
+  border-radius: 999px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  font-size: 14px;
+  z-index: 10;
+}
+
+.update-bar .btn { padding: 6px 14px; }
+
 /* ---------- footer ---------- */
 
 .app-footer {

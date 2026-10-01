@@ -4,6 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Audio Clipper</title>
+  <meta name="description" content="Trim a section out of an audio file and export it as WAV, MP3 or M4A — entirely in your browser.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0f1216" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f4f6f9" media="(prefers-color-scheme: light)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Clipper">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -111,6 +121,11 @@
     <footer class="app-footer">
       <p>Runs offline. MP3 encoding by <a href="https://lame.sourceforge.net/" rel="noopener">LAME</a> (lamejs).</p>
     </footer>
+
+    <div id="update-bar" class="update-bar" hidden role="status">
+      <span>A new version is ready.</span>
+      <button type="button" id="update-reload" class="btn btn-primary">Reload</button>
+    </div>
   </main>
 
   <script src="vendor/lame.min.js"></script>

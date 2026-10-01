@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "npx --yes live-server --port=5173 --no-browser .",
     "serve": "python3 -m http.server 5173",
-    "test": "node test/smoke.mjs"
+    "test": "node test/smoke.mjs && node test/pwa.mjs",
+    "test:exports": "node test/smoke.mjs",
+    "test:pwa": "node test/pwa.mjs"
   },
   "devDependencies": {
     "live-server": "^1.2.2"

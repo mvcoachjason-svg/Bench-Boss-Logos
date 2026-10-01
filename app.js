@@ -931,6 +931,59 @@
     }
   }
 
+  // ---------------------------------------------------------------- offline
+
+  /*
+   * Registers the service worker so the app can be installed to a home screen
+   * and run with no network. Service workers need a secure context, so this is
+   * a no-op when the page is opened straight off disk via file:// — the app
+   * itself still works there, it just will not install.
+   */
+  function initServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
+
+    navigator.serviceWorker.register('sw.js').then(function (registration) {
+      registration.addEventListener('updatefound', function () {
+        var incoming = registration.installing;
+        if (!incoming) return;
+        incoming.addEventListener('statechange', function () {
+          // A worker reaching 'installed' while another controls the page means
+          // this is an update rather than the first install.
+          if (incoming.state === 'installed' && navigator.serviceWorker.controller) {
+            el.updateBar.hidden = false;
+          }
+        });
+      });
+    }).catch(function (error) {
+      console.warn('Service worker registration failed:', error);
+    });
+
+    var reloading = false;
+    var updateAccepted = false;
+
+    // The first activation calls clients.claim(), which fires controllerchange
+    // too — reloading on that would bounce the page out from under someone who
+    // has only just opened it. Only reload when the update was asked for.
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!updateAccepted || reloading) return;
+      reloading = true;
+      location.reload();
+    });
+
+    el.updateReload.addEventListener('click', function () {
+      el.updateBar.hidden = true;
+      updateAccepted = true;
+      navigator.serviceWorker.getRegistration().then(function (registration) {
+        if (registration && registration.waiting) {
+          registration.waiting.postMessage('skip-waiting');
+        } else {
+          location.reload();
+        }
+      });
+    });
+  }
+
   // ---------------------------------------------------------------- init
 
   function buildPresets() {
@@ -1002,12 +1055,15 @@
       formatNote: $('format-note'),
       status: $('status'),
       progress: $('progress'),
-      progressBar: $('progress-bar')
+      progressBar: $('progress-bar'),
+      updateBar: $('update-bar'),
+      updateReload: $('update-reload')
     };
 
     buildPresets();
     initDropzone();
     initSelectionDragging();
+    initServiceWorker();
 
     el.changeFile.addEventListener('click', function () { el.fileInput.click(); });
     el.play.addEventListener('click', function () {
